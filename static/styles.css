@@ -1,0 +1,124 @@
+:root {
+    --background: #393939;
+    --text: white;
+    --gauge-background: var(--background);
+    --gauge-filler-background: #a0a0a0;
+    --gauge-filler: #ff0000;
+
+    --player-height: 50px
+}
+
+@font-face {
+    font-family: 'Poppins';
+    src: url('/static/fonts/Poppins-Regular.ttf') format('truetype');
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background);
+
+    color: var(--text);
+    font-family: 'Poppins', sans-serif;
+}
+
+.gauges {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.info {
+    display: flex;
+    flex-direction: column;
+    margin-top: 30px;
+    margin-bottom: 10px;
+}
+
+.text {
+    text-align: center;
+}
+
+.green {
+    color: green;
+}
+
+.player {
+    display: flex;
+    justify-content: space-evenly;
+    flex-direction: row;
+}
+
+.song {
+    height: var(--player-height);
+    line-height: var(--player-height);
+    text-align: center;
+    border: none;
+    min-width: 40px;
+}
+
+#playerSlider {
+    min-width: 50%;
+    accent-color: var(--gauge-filler);
+}
+
+.control-button {
+    background-color: transparent;
+    color: var(--text);
+    border: none;
+    font-size: 30px;
+    transition: transform 0.2s ease;
+}
+
+.control-button:active {
+    transform: scale(0.8);
+}
+
+.rpm-gauge, .kmh-gauge {
+    width: 100%;
+    max-width: 250px;
+    font-size: 32px;
+    color: var(--text);
+}
+  
+.gauge__body {
+    width: 100%;
+    height: 0;
+    padding-bottom: 50%;
+    background: var(--gauge-filler-background);
+    position: relative;
+    border-top-right-radius: 100% 200%;
+    border-top-left-radius: 100% 200%;
+    overflow: hidden;
+}
+
+.gauge__fill {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: inherit;
+    height: 100%;
+    background: var(--gauge-filler);
+    transform-origin: center top;
+    transform: rotate(0.25turn);
+    transition: transform 0.2s ease-out;
+    border-radius: 10%;
+}
+
+.gauge__cover {
+    width: 75%;
+    height: 150%;
+    background: var(--gauge-background);
+    border-radius: 50%;
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+
+    /* Text */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 25%;
+    box-sizing: border-box;
+}
