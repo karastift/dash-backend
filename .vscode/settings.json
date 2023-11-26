@@ -1,0 +1,11 @@
+{
+  "[html]": {
+    "editor.tabSize": 2
+  },
+  "[py]": {
+    "editor.tabSize": 4
+  },
+  "[js]": {
+    "editor.tabSize": 4
+  }
+}

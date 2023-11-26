@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <title>suri</title>
+</head>
+
+<body>
+
+  <div class="dashboard">
+    <div class="gauges">
+      <!-- rpm display -->
+      <div class="rpm-gauge">
+        <div class="gauge__body">
+          <div class="gauge__fill"></div>
+          <div class="gauge__cover"></div>
+        </div>
+      </div>
+
+      <!-- kmh display -->
+      <div class="kmh-gauge">
+        <div class="gauge__body">
+          <div class="gauge__fill"></div>
+          <div class="gauge__cover"></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- i dont know what to put here at the moment -->
+    <div class="info">
+      <span class="text">speed limit: <span class="green">unlimited</span></span>
+      <span class="text">brakes: <span class="green">disabled</span></span>
+      <span class="text">fuel: <span class="green">100%</span></span>
+    </div>
+  </div>
+
+  <div class="player">
+    <span id="song-name" class="song">interpet - song name</span>
+    <!-- <span id="song-current" class="song">0:16</span> -->
+    <!-- <input type="range" id="playerSlider" min="0" max="100" value="50"> -->
+    <!-- <span id="song-end" class="song">3:12</span> -->
+    <button class="control-button" id="backButton">⇦</button>
+    <button class="control-button" id="playButton">▶</button>
+    <button class="control-button" id="forwardButton">⇨</button>
+  </div>
+
+  <script src="{{ url_for('static', filename='jquery-3.7.1.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='updates.js') }}"></script>
+  <script src="{{ url_for('static', filename='player.js') }}"></script>
+</body>
+
+</html>
