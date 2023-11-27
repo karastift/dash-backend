@@ -15,8 +15,7 @@ socketio = SocketIO(app)
 logger = logging.getLogger('werkzeug')
 logger.disabled = False
 
-# p = Player()
-p = None
+p = Player()
 
 @app.route('/')
 def index():
