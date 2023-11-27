@@ -53,6 +53,8 @@ def player(action):
         response['titel'] = new_song['titel']
         response['interpret'] = new_song['interpret']
         response['length'] = new_song['length']
+        
+        print(response)
 
     else: return '', 404
 

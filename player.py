@@ -1,5 +1,6 @@
 import json
 import subprocess
+from time import sleep
 
 
 class Player():
@@ -67,16 +68,22 @@ class Player():
             self.bluez_player_commands(['play'])
         else:
             self.bluez_player_commands(['pause'])
+
+        self.wait_and_update(0.2)
         
         return self.isPlaying
     
     def back(self):
-        self.bluez_player_commands(['previous'])
+        output = self.bluez_player_commands(['previous'])
+        
+        self.wait_and_update(0.2)
 
         return self.song
 
     def forward(self):
         self.bluez_player_commands(['next'])
+
+        self.wait_and_update(0.2)
 
         return self.song
 
@@ -92,6 +99,13 @@ class Player():
             'isPlaying': self.isPlaying,
             'song': self.song,
         })
+
+    
+    # used by methods which control the player and need an update of status
+    # i cant just call update() because the player needs a bit time to get the new song information after changing track
+    def wait_and_update(self, seconds):
+        sleep(seconds)
+        self.update()
     
     def update(self):
         out = self.bluez_player_commands(['show'])
