@@ -101,7 +101,8 @@ class Player():
             'song': self.song,
         })
     
-    # wait and update because bluez player needs a bit time to change track for example
+    # used by methods which control the player and need an update of status
+    # i cant just call update() because the player needs a bit time to get the new song information after changing track
     def wait_and_update(self, seconds):
         sleep(seconds)
         self.update()
