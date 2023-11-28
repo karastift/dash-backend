@@ -19,8 +19,8 @@ socketio = SocketIO(app)
 logger = logging.getLogger('werkzeug')
 logger.disabled = False
 
-# p = Player()
-p = None
+p = Player()
+# p = None
 
 # clean up and shutdown
 def shutdown_server():
@@ -65,37 +65,30 @@ def index():
 # Returns all necessary info, but server uses only websocket info at the moment
 @app.route('/player/<string:action>', methods=['POST'])
 def player(action):
-    
-    response = {
-        'titel': '',
-        'interpret': '',
-        'current': 0,
-        'length': 0,
-        'isPlaying': False,
-    }
 
     if action == 'play_pause':
-        response['isPlaying'] = p.toggle_play()
+        p.toggle_play()
 
     # elif action == 'skip_to':
     #     percentage = request.form.get('percentage')
     #     response['current'] = p.skip_to(float(percentage))
 
     elif action == 'forward':
-        new_song = p.forward()
-
-        response['titel'] = new_song['titel']
-        response['interpret'] = new_song['interpret']
-        response['length'] = new_song['length']
+        p.forward()
 
     elif action == 'back':
-        new_song = p.back()
-
-        response['titel'] = new_song['titel']
-        response['interpret'] = new_song['interpret']
-        response['length'] = new_song['length']
+        p.back()
 
     else: return '', 404
+    
+    # every player method should update the player instance
+    # -> get the data from player instance and respond with it
+    response = {
+        'titel': p.song['titel'],
+        'interpret': p.song['interpret'],
+        'length': p.song['length'],
+        'isPlaying': p.isPlaying,
+    }
 
     return response, 200
 
