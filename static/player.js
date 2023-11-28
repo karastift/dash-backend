@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playButton = document.getElementById('playButton');
     const backButton = document.getElementById('forwardButton');
     const forwardButton = document.getElementById('backButton');
+    const shutdownButton = document.getElementById('shutdownButton');
     // const playerSlider = document.getElementById('playerSlider');
     // const currentTimeLabel = document.getElementById('song-current');
     // const endTimeLabel = document.getElementById('song-end');
@@ -50,6 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
     forwardButton.addEventListener('click', async () => {
         const res = await sendRequest('/player/back');
         updateSongOnDashboard(res);
+    });
+
+    forwardButton.addEventListener('click', async () => {
+        sendRequest('/shutdown');
     });
 
     // playerSlider.addEventListener('change', () => {
