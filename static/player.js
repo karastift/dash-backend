@@ -5,8 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // javascript object -> urlencoded data
         const formData = data
         ? Object.keys(data)
-              .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
-              .join('&')
+            .map((key) => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+            .join('&')
         : null;
 
         const response = await fetch(url, {
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSongOnDashboard(res);
     });
 
-    forwardButton.addEventListener('click', async () => {
+    shutdownButton.addEventListener('click', async () => {
         sendRequest('/shutdown');
     });
 

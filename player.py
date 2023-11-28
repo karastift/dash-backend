@@ -20,7 +20,12 @@ class Player():
         self.isPlaying = False
 
     def get_bluez_player_name(self) -> str:
-        process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        try:
+            process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        except:
+            print('Error while opening bluetoothctl')
+
+            return ''
 
         process.stdin.write('menu player\n')
         process.stdin.write('list\n')
@@ -127,5 +132,5 @@ class Player():
             print('error on updating')
     
     # there is nothing to clean up at the moment
-    def clean_up():
+    def clean_up(self):
         pass

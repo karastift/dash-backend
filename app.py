@@ -1,3 +1,4 @@
+import sys
 import time
 import json
 import logging
@@ -19,8 +20,7 @@ socketio = SocketIO(app)
 logger = logging.getLogger('werkzeug')
 logger.disabled = False
 
-# p = Player()
-p = None
+p = Player()
 
 # clean up and shutdown
 def shutdown_server():
@@ -28,8 +28,13 @@ def shutdown_server():
     running = False
 
     p.clean_up()
-    subprocess.run('poweroff')
-    exit()
+    subprocess.run('shutdown -h now')
+    socketio.stop()
+    shutdown_func = request.environ.get('werkzeug.server.shutdown')
+    if shutdown_func is None:
+        raise RuntimeError('Not running werkzeug')
+    shutdown_func()
+    sys.exit()
 
 # def update_and_send_player_data():
 #     while True:
@@ -94,7 +99,7 @@ def player(action):
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
-    shutdown()
+    shutdown_server()
     return '', 200
 
 
@@ -109,4 +114,4 @@ if __name__ == '__main__':
     # update_player_thread.daemon = True
     # update_player_thread.start()
 
-    socketio.run(app, debug=True)
+    socketio.run(app, 'localhost', debug=True)
