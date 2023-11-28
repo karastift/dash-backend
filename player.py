@@ -18,8 +18,6 @@ class Player():
         # self.current = 0
         self.isPlaying = False
 
-        # self.update()
-
     def get_bluez_player_name(self) -> str:
         process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
@@ -111,3 +109,7 @@ class Player():
                 else: pass
         except:
             print('error on updating')
+    
+    # there is nothing to clean up at the moment
+    def clean_up():
+        pass

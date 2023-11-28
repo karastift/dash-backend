@@ -1,12 +1,16 @@
 import time
 import json
 import logging
+import subprocess
 from threading import Thread
 
 from flask_socketio import SocketIO
 from flask import Flask, render_template, request
 
 from player import Player
+
+# used by threads that send dashboard updates per websocket
+running = True
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'vhneuezflszfnlfuf834hfu48fjiedhf93whiu2i2jdfjsd93ikerjnk'
@@ -15,7 +19,44 @@ socketio = SocketIO(app)
 logger = logging.getLogger('werkzeug')
 logger.disabled = False
 
-p = Player()
+# p = Player()
+p = None
+
+# clean up and shutdown
+def shutdown_server():
+    global running
+    running = False
+
+    p.clean_up()
+    subprocess.run('poweroff')
+    exit()
+
+# def update_and_send_player_data():
+#     while True:
+#         p.update()
+#         socketio.emit('player_update', p.json_status())
+#         time.sleep(5) # update every 5 seconds to save resources and i cant get the current playing anyways
+
+def send_dashboard_data():
+    
+    kmh = 0
+    rpm = 0
+
+    while running:
+        kmh %= 200
+        kmh += 5
+
+        rpm %= 6000
+        rpm += 100
+
+        data_string = json.dumps({
+            'kmh': kmh,
+            'rpm': rpm,
+        })
+
+        socketio.emit('dashboard_update', data_string)
+        time.sleep(0.1)
+
 
 @app.route('/')
 def index():
@@ -58,31 +99,11 @@ def player(action):
 
     return response, 200
 
-# def update_and_send_player_data():
-#     while True:
-#         p.update()
-#         socketio.emit('player_update', p.json_status())
-#         time.sleep(5) # update every 5 seconds to save resources and i cant get the current playing anyways
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    shutdown()
+    return '', 200
 
-def send_dashboard_data():
-    
-    kmh = 0
-    rpm = 0
-
-    while True:
-        kmh %= 200
-        kmh += 5
-
-        rpm %= 6000
-        rpm += 100
-
-        data_string = json.dumps({
-            'kmh': kmh,
-            'rpm': rpm,
-        })
-
-        socketio.emit('dashboard_update', data_string)
-        time.sleep(0.1)
 
 if __name__ == '__main__':
     # start thread to send updated data for dashboard
