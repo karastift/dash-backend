@@ -1,5 +1,6 @@
 import json
 import subprocess
+from time import sleep
 
 
 class Player():
@@ -66,15 +67,24 @@ class Player():
         else:
             self.bluez_player_commands(['pause'])
         
+        # wait for player to update
+        self.wait_and_update(0.2)
+        
         return self.isPlaying
     
     def back(self):
         self.bluez_player_commands(['previous'])
 
+        # wait for player to update
+        self.wait_and_update(0.2)
+
         return self.song
 
     def forward(self):
         self.bluez_player_commands(['next'])
+
+        # wait for player to update
+        self.wait_and_update(0.2)
 
         return self.song
 
@@ -90,6 +100,11 @@ class Player():
             'isPlaying': self.isPlaying,
             'song': self.song,
         })
+    
+    # wait and update because bluez player needs a bit time to change track for example
+    def wait_and_update(self, seconds):
+        sleep(seconds)
+        self.update()
     
     def update(self):
         out = self.bluez_player_commands(['show'])
