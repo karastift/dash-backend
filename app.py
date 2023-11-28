@@ -19,8 +19,8 @@ socketio = SocketIO(app)
 logger = logging.getLogger('werkzeug')
 logger.disabled = False
 
-p = Player()
-# p = None
+# p = Player()
+p = None
 
 # clean up and shutdown
 def shutdown_server():
@@ -84,7 +84,7 @@ def player(action):
     # every player method should update the player instance
     # -> get the data from player instance and respond with it
     response = {
-        'titel': p.song['titel'],
+        'title': p.song['title'],
         'interpret': p.song['interpret'],
         'length': p.song['length'],
         'isPlaying': p.isPlaying,
