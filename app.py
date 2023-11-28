@@ -77,9 +77,9 @@ def player(action):
     if action == 'play_pause':
         response['isPlaying'] = p.toggle_play()
 
-    elif action == 'skip_to':
-        percentage = request.form.get('percentage')
-        response['current'] = p.skip_to(float(percentage))
+    # elif action == 'skip_to':
+    #     percentage = request.form.get('percentage')
+    #     response['current'] = p.skip_to(float(percentage))
 
     elif action == 'forward':
         new_song = p.forward()
