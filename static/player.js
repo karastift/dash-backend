@@ -6,7 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.onreadystatechange = () => {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                // Handle success response from the server
+                try {
+                    return JSON.parse(xhr.responseText);
+                }
+                catch(error) {
+                    // handle error
+                    console.log(error);
+                }
             }
         };
         var formData = data ? Object.keys(data).map(function(key) {
@@ -15,23 +21,34 @@ document.addEventListener('DOMContentLoaded', () => {
         xhr.send(formData);
     };
 
-    var playButton = document.getElementById('playButton');
-    var backButton = document.getElementById('forwardButton');
-    var forwardButton = document.getElementById('backButton');
-    var playerSlider = document.getElementById('playerSlider');
-    var currentTimeLabel = document.getElementById('song-current');
-    var endTimeLabel = document.getElementById('song-end');
+    const updateSongOnDashboard = (song) => {
+        const songInfo = document.getElementById('song-info');
+        const playButton = document.getElementById('play-button');
+
+        songInfo.innerText = `${song.titel} - ${song.interpet}`;
+        playButton.innerText = song.isPlaying ? '⏸' : '▶';
+    };
+
+    const playButton = document.getElementById('playButton');
+    const backButton = document.getElementById('forwardButton');
+    const forwardButton = document.getElementById('backButton');
+    const playerSlider = document.getElementById('playerSlider');
+    const currentTimeLabel = document.getElementById('song-current');
+    const endTimeLabel = document.getElementById('song-end');
 
     playButton.addEventListener('click', () => {
-        sendRequest('/player/play_pause');
+        const res = sendRequest('/player/play_pause');
+        updateSongOnDashboard(res);
     });
 
     backButton.addEventListener('click', () => {
-        sendRequest('/player/forward');
+        const res = sendRequest('/player/forward');
+        updateSongOnDashboard(res);
     });
 
     forwardButton.addEventListener('click', () => {
-        sendRequest('/player/back');
+        const res = sendRequest('/player/back');
+        updateSongOnDashboard(res);
     });
 
     playerSlider.addEventListener('change', () => {
