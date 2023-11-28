@@ -10,7 +10,7 @@ class Player():
         self.bluez_player_name = self.get_bluez_player_name()
 
         self.song = {
-            "titel": "",
+            "title": "",
             "interpret": "",
             "length": 0, # in seconds
         }
@@ -116,7 +116,7 @@ class Player():
                 if line.startswith('Status'):
                     self.isPlaying = 'playing' == line.split(': ')[1]
                 elif line.startswith('Title'):
-                    self.song['titel'] = line.split(': ')[1]
+                    self.song['title'] = line.split(': ')[1]
                 elif line.startswith('Artist'):
                     self.song['interpret'] = line.split(': ')[1]
                 elif line.startswith('Duration'):
