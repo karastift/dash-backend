@@ -1,4 +1,5 @@
 import json
+import logging
 import subprocess
 from time import sleep
 from typing import List
@@ -13,7 +14,7 @@ class Player():
     It uses the `bluetoothctl` utility, without it, it will not work at all.
     """
 
-    def __init__(self, player_name: str = '') -> None:
+    def __init__(self, player_name: str = '', logger: logging.Logger = None) -> None:
         """
         If `player_name` is not set, it searches for the first player it finds and uses it.
         If it cannot find a player and it has not been set, an exception is raised
@@ -21,17 +22,35 @@ class Player():
         :param player_name: The name of the bluez player you want to use.
         """
 
+        # if logger is set, use it
+        # if logger is not set a null_logger is created that wont log anything
+        if logger:
+            self.logger = logger
+        else:
+            # create a logger
+            self.logger = logging.getLogger('null_logger')
+
+            # create a NullHandler and add it to the logger
+            null_handler = logging.NullHandler()
+            self.logger.addHandler(null_handler)
+
+            # set the logger level to NOTSET to capture all messages
+            self.logger.setLevel(logging.NOTSET)
+        
+        logger.info('Initializing player.')
+
         if player_name == '':
             # search for player
             # raises an exception if no player has been found
             self.bluez_player_name = get_bluez_player_name()
+            logger.info('Found player: \'%s\'', self.bluez_player_name)
         else:
             if is_bluez_player_present(player_name):
                 self.bluez_player_name = player_name
+                logger.info('Successfully checked player: \'%s\'', self.bluez_player_name)
             else:
                 raise PlayerNotFoundException(player_name)
                 
-
         self.song = {
             "title": "",
             "interpret": "",
@@ -54,6 +73,7 @@ class Player():
         process.stdin.write(f'select {self.bluez_player_name}\n')
 
         for command in commands:
+            self.logger.info('Sending command: \'%s\'', command)
             process.stdin.write(command + '\n')
 
         process.stdin.write('exit\n')
@@ -125,10 +145,14 @@ class Player():
     # used by methods which control the player and need an update of status
     # i cant just call update() because the player needs a bit time to get the new song information after changing track
     def wait_and_update(self, seconds):
+
         sleep(seconds)
         self.update()
     
     def update(self):
+
+        self.logger.info('Updating player.')
+
         out = self.bluez_player_commands(['show'])
 
         try:
@@ -145,7 +169,7 @@ class Player():
                     self.song['length'] = int(line.split(' ')[2][1:-1]) / 1000
                 else: pass
         except:
-            print('error on updating')
+            self.logger.error('Error on updating player.', exc_info=1)
     
     def clean_up(self):
         """
