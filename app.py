@@ -1,6 +1,7 @@
 import sys
 import time
 import json
+import logging
 import subprocess
 from threading import Thread, Event
 
@@ -9,15 +10,26 @@ from flask import Flask, render_template, request
 
 from player import Player
 
-# Event to signal the dashboard update thread to stop
-stop_dashboard_updates_event = Event()
+# Configure logging with a custom format
+log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%d/%b/%Y %H:%M:%S')
+log_handler = logging.StreamHandler()
+log_handler.setFormatter(log_formatter)
+
+# use 'werkzeug' logger for my logs too
+logger = logging.getLogger('werkzeug')
+logger.addHandler(log_handler)
+logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'vhneuezflszfnlfuf834hfu48fjiedhf93whiu2i2jdfjsd93ikerjnk'
 socketio = SocketIO(app)
 
-# create instance of player
-player = Player()
+# create instance of player and use 'werkzeug' logger in player
+player = Player(logger=logger)
+# player = None
+
+# Event to signal the dashboard update thread to stop
+stop_dashboard_updates_event = Event()
 
 def shutdown_server():
     """
@@ -27,26 +39,24 @@ def shutdown_server():
     and exits program.
     """
 
-
     # Set the event to signal the dashboard update thread to stop
+    logger.info('Sending stop signal to threads.')
     stop_dashboard_updates_event.set()
 
     # tell player to clean up
+    logger.info('Cleaning up instances.')
     player.clean_up()
 
     # schedule shutdown on machine
+    logger.info('Scheduling a shutdown.')
     subprocess.run('shutdown -h now')
 
     # stop websocket server
+    logger.info('Stopping websocket server.')
     socketio.stop()
 
-    # if server runs with werkzeug, use the shutdown_func
-    shutdown_func = request.environ.get('werkzeug.server.shutdown')
-    if shutdown_func is None:
-        raise RuntimeError('Not running werkzeug')
-    shutdown_func()
-
     # exit program
+    logger.info('Exiting program.')
     sys.exit()
 
 # def update_and_send_player_data():
@@ -60,11 +70,13 @@ def send_dashboard_data():
     Creates an endless loop that sends updates to the dashboard per websocket (every 100ms).
     The data sent, involves vehicle specific data like kmh and rpm.
     """
-    
+
+    logger.info('Starting to send vehicle updates.')
+
     kmh = 0
     rpm = 0
 
-    while not stop_dashboard_updates_event.isSet():
+    while not stop_dashboard_updates_event.is_set():
         kmh %= 200
         kmh += 5
 
@@ -126,6 +138,8 @@ def shutdown():
     """
     Endpoint to shutdown the server. Calls shutdown_server() and returns nothing.
     """
+
+    logger.warning('Shutdown of server was requested.')
 
     shutdown_server()
     return '', 200
