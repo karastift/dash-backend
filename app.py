@@ -103,10 +103,10 @@ def player_endpoint(action):
     #     response['current'] = p.skip_to(float(percentage))
 
     elif action == 'forward':
-        player.forward()
+        player.next()
 
     elif action == 'back':
-        player.back()
+        player.previous()
 
     else: return '', 404
     
