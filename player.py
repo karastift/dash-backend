@@ -14,7 +14,7 @@ class Player():
     It uses the `bluetoothctl` utility, without it, it will not work at all.
     """
 
-    def __init__(self, player_name: str = '', logger: logging.Logger = None) -> None:
+    def __init__(self, player_name: str = '', wait_before_update_time: float = 0.2, logger: logging.Logger = None) -> None:
         """
         If `player_name` is not set, it searches for the first player it finds and uses it.
         If it cannot find a player and it has not been set, an exception is raised
@@ -62,6 +62,8 @@ class Player():
 
         self.isPlaying = False
 
+        self.wait_before_update_time = wait_before_update_time
+
     def bluez_player_commands(self, commands: List[str]) -> str:
         """
         Selects the player currently set in class and executes the list of commands. Returns the all the output as string.
@@ -99,7 +101,7 @@ class Player():
             self.bluez_player_commands(['pause'])
         
         # wait for player to update
-        self.wait_and_update(0.2)
+        self.wait_and_update(self.wait_before_update_time)
         
         return self.isPlaying
     
@@ -112,7 +114,7 @@ class Player():
         self.bluez_player_commands(['previous'])
 
         # wait for player to update
-        self.wait_and_update(0.2)
+        self.wait_and_update(self.wait_before_update_time)
 
         return self.song
 
@@ -125,7 +127,7 @@ class Player():
         self.bluez_player_commands(['next'])
 
         # wait for player to update
-        self.wait_and_update(0.2)
+        self.wait_and_update(self.wait_before_update_time)
 
         return self.song
 
