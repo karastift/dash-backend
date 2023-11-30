@@ -6,6 +6,7 @@ from typing import List
 
 
 BLUETOOTHCTL_MODULE_NAME = 'bluetoothctl'
+AMIXER_MODULE_NAME = 'amixer'
 
     
 class Player():
@@ -61,6 +62,7 @@ class Player():
         # self.current = 0
 
         self.isPlaying = False
+        self.volume = 0.5
 
         self.wait_before_update_time = wait_before_update_time
 
@@ -136,6 +138,13 @@ class Player():
     #     print("Skipped to (not implemented):", self.current, "seconds")
 
     #     return self.current
+
+    def set_volume(self, percentage: float) -> None:
+        self.volume = percentage
+
+        percentage_string = str(percentage * 100) + '%'
+
+        subprocess.run([AMIXER_MODULE_NAME, 'sset', 'Master', percentage_string])
     
     def json_status(self):
         return json.dumps({
