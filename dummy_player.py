@@ -33,6 +33,7 @@ class DummyPlayer():
     ]
 
     current_song_index = 0
+    volume = 0.5
 
     def __init__(self, logger: logging.Logger = None) -> None:
 
@@ -91,6 +92,9 @@ class DummyPlayer():
         self.song = self.songs[self.current_song_index]
 
         return self.song
+    
+    def set_volume(self, percentage: float) -> None:
+        self.volume = percentage
 
     def json_status(self):
         return json.dumps({

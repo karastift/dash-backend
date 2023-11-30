@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // const playerSlider = document.getElementById('playerSlider');
     // const currentTimeLabel = document.getElementById('song-current');
     // const endTimeLabel = document.getElementById('song-end');
+    const volumeSlider = document.getElementById('volumeSlider');
 
     playButton.addEventListener('click', async () => {
         const res = await sendRequest('/player/play_pause');
@@ -87,4 +88,19 @@ document.addEventListener('DOMContentLoaded', () => {
     //         sliderChanged = false;
     //     }
     // });
+
+        // playerSlider.addEventListener('change', () => {
+    //     sliderChanged = true;
+    // });
+
+    volumeSlider.addEventListener('input', () => {
+        sliderChanged = true;
+    });
+
+    volumeSlider.addEventListener('mouseup', () => {
+        if (sliderChanged) {
+            sendRequest('/player/volume_to', { percentage: volumeSlider.value / 100 });
+            sliderChanged = false;
+        }
+    });
 });
