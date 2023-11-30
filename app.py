@@ -5,10 +5,34 @@ import logging
 import subprocess
 from threading import Thread, Event
 
+import yaml
 from flask_socketio import SocketIO
 from flask import Flask, render_template, request
 
 from player import Player
+
+
+class ConfigMissingException(Exception):
+    """
+    Is raised when a config option is not set.
+    """
+    def __init__(self, missing_config: str = '') -> None:
+        if missing_config:
+            super().__init__(f'`{missing_config}` is not set in configuration file.')
+        else:
+            super().__init__('Configuration file does not contain configuration.')
+
+
+# load configuration
+config = yaml.safe_load(open('./config.yml'))
+
+if not config: raise ConfigMissingException()
+
+# check loaded configuration
+expected_config_options = ['FLASK_SECRET_KEY', 'DASHBOARD_UPDATE_TIME']
+for config_option in expected_config_options:
+    if not config_option in config:
+        raise ConfigMissingException(config_option)
 
 # Configure logging with a custom format
 log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%d/%b/%Y %H:%M:%S')
@@ -21,11 +45,14 @@ logger.addHandler(log_handler)
 logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'vhneuezflszfnlfuf834hfu48fjiedhf93whiu2i2jdfjsd93ikerjnk'
+app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
 socketio = SocketIO(app)
 
 # create instance of player and use 'werkzeug' logger in player
-player = Player(logger=logger)
+player = Player(
+    wait_before_update_time=config.get('PLAYER_UPDATE_TIME', None),
+    logger=logger
+)
 # player = None
 
 # Event to signal the dashboard update thread to stop
@@ -76,6 +103,8 @@ def send_dashboard_data():
     kmh = 0
     rpm = 0
 
+    wait_time = config['DASHBOARD_UPDATE_TIME']
+
     while not stop_dashboard_updates_event.is_set():
         kmh %= 200
         kmh += 5
@@ -89,7 +118,7 @@ def send_dashboard_data():
         })
 
         socketio.emit('dashboard_update', data_string)
-        time.sleep(0.1)
+        time.sleep(wait_time)
 
 
 @app.route('/')
