@@ -10,6 +10,7 @@ from flask_socketio import SocketIO
 from flask import Flask, render_template, request
 
 from player import Player
+from dummy_player import DummyPlayer
 
 
 class ConfigMissingException(Exception):
@@ -29,7 +30,7 @@ config = yaml.safe_load(open('./config.yml'))
 if not config: raise ConfigMissingException()
 
 # check loaded configuration
-expected_config_options = ['FLASK_SECRET_KEY', 'DASHBOARD_UPDATE_TIME']
+expected_config_options = ['FLASK_SECRET_KEY', 'DASHBOARD_UPDATE_TIME', 'DEV']
 for config_option in expected_config_options:
     if not config_option in config:
         raise ConfigMissingException(config_option)
@@ -48,12 +49,15 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
 socketio = SocketIO(app)
 
-# create instance of player and use 'werkzeug' logger in player
-player = Player(
-    wait_before_update_time=config.get('PLAYER_UPDATE_TIME', None),
-    logger=logger
-)
-# player = None
+if not config.get('DEV'):
+    # create instance of player and use 'werkzeug' logger in player
+    player = Player(
+        wait_before_update_time=config.get('PLAYER_UPDATE_TIME', None),
+        logger=logger
+    )
+else:
+    # for development on other platforms use dummy player
+    player = DummyPlayer()
 
 # Event to signal the dashboard update thread to stop
 stop_dashboard_updates_event = Event()
