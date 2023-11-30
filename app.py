@@ -147,6 +147,10 @@ def player_endpoint(action):
     #     percentage = request.form.get('percentage')
     #     response['current'] = p.skip_to(float(percentage))
 
+    elif action == 'volume_to':
+        percentage = request.form.get('percentage')
+        player.set_volume(float(percentage))
+
     elif action == 'forward':
         player.next()
 
@@ -162,6 +166,7 @@ def player_endpoint(action):
         'interpret': player.song['interpret'],
         'length': player.song['length'],
         'isPlaying': player.isPlaying,
+        'volume': player.volume,
     }
 
     return response, 200
@@ -189,4 +194,4 @@ if __name__ == '__main__':
     # update_player_thread.daemon = True
     # update_player_thread.start()
 
-    socketio.run(app, 'localhost', debug=True)
+    socketio.run(app, '0.0.0.0', port=3333, debug=True)
