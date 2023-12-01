@@ -9,8 +9,7 @@ import yaml
 from flask_socketio import SocketIO
 from flask import Flask, render_template, request
 
-from player import Player
-from dummy_player import DummyPlayer
+from player import Player, NoPlayerFoundException
 
 
 class ConfigMissingException(Exception):
@@ -49,15 +48,32 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
 socketio = SocketIO(app)
 
-if not config.get('DEV'):
-    # create instance of player and use 'werkzeug' logger in player
-    player = Player(
-        wait_before_update_time=config.get('PLAYER_UPDATE_TIME', None),
-        logger=logger
-    )
-else:
-    # for development on other platforms use dummy player
-    player = DummyPlayer()
+# create player variable to use in player endpoint and search_and_set_player() function
+player: Player
+
+def search_and_set_player() -> bool:
+    """
+    This function tries to initiate a player and set it as the global player variable. It returns a boolean indicating if initialization was successful.
+    """
+
+    global player
+
+    try:
+        
+        logger.info('Searching for player')
+
+        player = Player(
+            wait_before_update_time=config.get('PLAYER_UPDATE_TIME', None),
+            logger=logger
+        )
+
+        logger.info('Found and set player: %s', player.bluez_player_name)
+
+        return True
+
+    except NoPlayerFoundException:
+        logger.warning('Tried initiating player, but no player was found')
+        return False
 
 # Event to signal the dashboard update thread to stop
 stop_dashboard_updates_event = Event()
@@ -132,11 +148,19 @@ def index():
 @app.route('/player/<string:action>', methods=['POST'])
 def player_endpoint(action):
     """
+    First, it checks if player was set globally and if not it calls `search_and_set_player()` function.
+
     Calls corresponding method on player to action parameter and returns new song information (from player) as json.
 
     :param action: 'play_pause' | 'forward' | 'back'
     :return: dictionary { 'title': str, 'interpret': str, 'length': int, 'isPlaying': bool }
     """
+
+    if not player:
+        success_setting_player = search_and_set_player()
+
+        if not success_setting_player:
+            return { 'error': 'A bluetooth connected device with music playing is required to use player actions.' }, 400
 
     # call player method corresponding to action
 
@@ -167,6 +191,7 @@ def player_endpoint(action):
         'length': player.song['length'],
         'isPlaying': player.isPlaying,
         'volume': player.volume,
+        'error': None,
     }
 
     return response, 200
