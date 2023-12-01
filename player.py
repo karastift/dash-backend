@@ -15,6 +15,7 @@ class Player():
     It uses the `bluetoothctl` utility, without it, it will not work at all.
     """
 
+    # TODO: wait before update time is none and 0.2 is not used, fix that
     def __init__(self, player_name: str = '', wait_before_update_time: float = 0.2, logger: logging.Logger = None) -> None:
         """
         If `player_name` is not set, it searches for the first player it finds and uses it.
@@ -40,17 +41,17 @@ class Player():
         
         logger.info('Initializing player.')
 
-        if player_name == '':
-            # search for player
-            # raises an exception if no player has been found
-            self.bluez_player_name = get_bluez_player_name()
-            logger.info('Found player: \'%s\'', self.bluez_player_name)
-        else:
-            if is_bluez_player_present(player_name):
-                self.bluez_player_name = player_name
-                logger.info('Successfully checked player: \'%s\'', self.bluez_player_name)
-            else:
-                raise PlayerNotFoundException(player_name)
+        # if player_name == '':
+        #     # search for player
+        #     # raises an exception if no player has been found
+        #     self.bluez_player_name = get_bluez_player_name()
+        #     logger.info('Found player: \'%s\'', self.bluez_player_name)
+        # else:
+        #     if is_bluez_player_present(player_name):
+        #         self.bluez_player_name = player_name
+        #         logger.info('Successfully checked player: \'%s\'', self.bluez_player_name)
+        #     else:
+        #         raise PlayerNotFoundException(player_name)
                 
         self.song = {
             "title": "",
@@ -64,7 +65,8 @@ class Player():
         self.isPlaying = False
         self.volume = 0.5
 
-        self.wait_before_update_time = wait_before_update_time
+        # if None is passed, use 0.2
+        self.wait_before_update_time = wait_before_update_time or 0.2
 
     def bluez_player_commands(self, commands: List[str]) -> str:
         """

@@ -80,7 +80,7 @@ def shutdown_server():
 
     # schedule shutdown on machine
     logger.info('Scheduling a shutdown.')
-    subprocess.run('shutdown -h now')
+    subprocess.run(['shutdown', '-h', 'now'])
 
     # stop websocket server
     logger.info('Stopping websocket server.')
