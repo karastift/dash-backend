@@ -6,7 +6,10 @@ from typing import List
 
 
 BLUETOOTHCTL_MODULE_NAME = 'bluetoothctl'
+"""Defines the path/name of the `bluetoothctl` program. You should change that to match the name/path of the tool on your system."""
+
 AMIXER_MODULE_NAME = 'amixer'
+"""Defines the path/name of the `amixer` program. You should change that to match the name/path of the tool on your system."""
 
     
 class Player():
@@ -15,7 +18,6 @@ class Player():
     It uses the `bluetoothctl` utility, without it, it will not work at all.
     """
 
-    # TODO: wait before update time is none and 0.2 is not used, fix that
     def __init__(self, player_name: str = '', wait_before_update_time: float = 0.2, logger: logging.Logger = None) -> None:
         """
         If `player_name` is not set, it searches for the first player it finds and uses it.
