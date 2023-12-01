@@ -41,17 +41,17 @@ class Player():
         
         logger.info('Initializing player.')
 
-        # if player_name == '':
-        #     # search for player
-        #     # raises an exception if no player has been found
-        #     self.bluez_player_name = get_bluez_player_name()
-        #     logger.info('Found player: \'%s\'', self.bluez_player_name)
-        # else:
-        #     if is_bluez_player_present(player_name):
-        #         self.bluez_player_name = player_name
-        #         logger.info('Successfully checked player: \'%s\'', self.bluez_player_name)
-        #     else:
-        #         raise PlayerNotFoundException(player_name)
+        if player_name == '':
+            # search for player
+            # raises an exception if no player has been found
+            self.bluez_player_name = get_bluez_player_name()
+            logger.info('Found player: \'%s\'', self.bluez_player_name)
+        else:
+            if is_bluez_player_present(player_name):
+                self.bluez_player_name = player_name
+                logger.info('Successfully checked player: \'%s\'', self.bluez_player_name)
+            else:
+                raise PlayerNotFoundException(player_name)
                 
         self.song = {
             "title": "",
