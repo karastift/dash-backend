@@ -49,7 +49,7 @@ app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
 socketio = SocketIO(app)
 
 # create player variable to use in player endpoint and search_and_set_player() function
-player: Player
+player: Player = None
 
 def search_and_set_player() -> bool:
     """
@@ -144,6 +144,17 @@ def send_dashboard_data():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/bluetooth/<string:action>', methods=['POST'])
+def bluetooth_endpoint(action):
+    """
+    First, it checks if bluetooth instance was set globally and if not it tries to initiate it.
+
+    Calls corresponding method on player to action parameter. Returns an error message if there was an error.
+
+    :param action: 'discoverable' | 'pairing'
+    :return: dictionary { 'error': string }
+    """
 
 @app.route('/player/<string:action>', methods=['POST'])
 def player_endpoint(action):

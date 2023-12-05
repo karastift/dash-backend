@@ -81,7 +81,7 @@ class Player():
         process.stdin.write(f'select {self.bluez_player_name}\n')
 
         for command in commands:
-            self.logger.info('Sending command: \'%s\'', command)
+            self.logger.info('Sending command to player: \'%s\'', command)
             process.stdin.write(command + '\n')
 
         process.stdin.write('exit\n')
@@ -149,7 +149,7 @@ class Player():
         percentage_string = str(percentage * 100) + '%'
 
         subprocess.run([AMIXER_MODULE_NAME, 'sset', 'Master', percentage_string])
-    
+
     def json_status(self):
         return json.dumps({
             # 'current': self.current,
@@ -195,7 +195,7 @@ class Player():
 
 def get_bluez_player_name() -> str:
 
-    player_names = list_blue_player_names()
+    player_names = list_bluez_player_names()
 
     try:
         return player_names[0]
@@ -204,11 +204,11 @@ def get_bluez_player_name() -> str:
 
 def is_bluez_player_present(player_name: str) -> bool:
 
-    player_names = list_blue_player_names()
+    player_names = list_bluez_player_names()
 
     return player_name in player_names
 
-def list_blue_player_names() -> List[str]:
+def list_bluez_player_names() -> List[str]:
     """
     Returns a list of all the specific bluez player names.
     """
@@ -238,6 +238,39 @@ def list_blue_player_names() -> List[str]:
             player_names.append(line.split(' ')[1])
 
     return player_names
+
+def bluetoothctl_commands(commands: List[str]) -> str:
+    """
+    Executes the list of commands against the `bluetootctl` program. Returns the all the output as string.
+    """
+
+    process = subprocess.Popen([BLUETOOTHCTL_MODULE_NAME], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
+    for command in commands:
+        logging.getLogger().info('Sending command to bluetoothctl: \'%s\'', command)
+        process.stdin.write(command + '\n')
+
+    process.stdin.write('exit\n')
+    
+    out, err = process.communicate()
+
+    if err:
+        raise err
+
+    return out
+
+def set_pairing(status: bool) -> None:
+
+    command = 'pairing ' + 'on' if status else 'off'
+
+    bluetoothctl_commands([command])
+
+def set_discoverable(self, status: bool) -> None:
+
+    command = 'discoverable ' + 'on' if status else 'off'
+
+    bluetoothctl_commands([command])
+    
 
 class BluetoothctlNotFoundException(Exception):
     """
