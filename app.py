@@ -10,6 +10,7 @@ from flask_socketio import SocketIO
 from flask import Flask, render_template, request
 
 from bluetooth import Bluetooth
+from player import PlayerNotFoundException
 
 class ConfigMissingException(Exception):
     """
