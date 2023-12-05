@@ -35,6 +35,10 @@ class Bluetooth():
         self.bluetoothctl_path = bluetoothctl_path
         """Defines the path/name of the `bluetoothctl` program. You should change that to match the name/path of the tool on your system."""
 
+        # check defined bluetoothctl path by trying to open a process
+        # this will raise BluetoothctlNotFoundException if path is wrong
+        self.commands([])
+
     def commands(self, commands: List[str], exit_after_commands = True) -> str:
         """
         Executes the list of commands against the `bluetootctl` program. Returns the all the output as string.
