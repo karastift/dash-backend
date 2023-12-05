@@ -2,13 +2,10 @@ import json
 import logging
 import subprocess
 from time import sleep
-from typing import List
+from typing import Callable, List
 
 
-BLUETOOTHCTL_MODULE_NAME = 'bluetoothctl'
-"""Defines the path/name of the `bluetoothctl` program. You should change that to match the name/path of the tool on your system."""
-
-AMIXER_MODULE_NAME = 'amixer'
+amixer_module_path = 'amixer'
 """Defines the path/name of the `amixer` program. You should change that to match the name/path of the tool on your system."""
 
     
@@ -18,7 +15,7 @@ class Player():
     It uses the `bluetoothctl` utility, without it, it will not work at all.
     """
 
-    def __init__(self, player_name: str = '', wait_before_update_time: float = 0.2, logger: logging.Logger = None) -> None:
+    def __init__(self, bluetoothctl_commands: Callable[[List[str]], str], player_name: str, wait_before_update_time: float = 0.2, logger: logging.Logger = None) -> None:
         """
         If `player_name` is not set, it searches for the first player it finds and uses it.
         If it cannot find a player and it has not been set, an exception is raised
@@ -40,20 +37,19 @@ class Player():
 
             # set the logger level to NOTSET to capture all messages
             self.logger.setLevel(logging.NOTSET)
+
+        self.bluetoothctl_commands = bluetoothctl_commands
+        """The function to be used when executing bluetoothctl_commands. It needs take in a list of commands to return the output as a string."""
         
         logger.info('Initializing player.')
 
-        if player_name == '':
-            # search for player
-            # raises an exception if no player has been found
-            self.bluez_player_name = get_bluez_player_name()
-            logger.info('Found player: \'%s\'', self.bluez_player_name)
-        else:
-            if is_bluez_player_present(player_name):
-                self.bluez_player_name = player_name
-                logger.info('Successfully checked player: \'%s\'', self.bluez_player_name)
-            else:
-                raise PlayerNotFoundException(player_name)
+        self.bluez_player_path = player_name
+        """
+        The path of the bluez player that should be used underneath.
+        """
+
+        if player_name == '' or not self.exists():
+            raise PlayerNotFoundException(player_name)
                 
         self.song = {
             "title": "",
@@ -69,29 +65,29 @@ class Player():
 
         # if None is passed, use 0.2
         self.wait_before_update_time = wait_before_update_time or 0.2
-
-    def bluez_player_commands(self, commands: List[str]) -> str:
+    
+    def commands(self, commands: List[str]) -> str:
         """
         Selects the player currently set in class and executes the list of commands. Returns the all the output as string.
+
+        Uses `bluetoothctl_commands` function which was passed on initialization.
         """
 
-        process = subprocess.Popen([BLUETOOTHCTL_MODULE_NAME], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        # selects player before executing commands
+        new_command_list = ['menu player', f'select {self.bluez_player_path}'].extend(commands)
 
-        process.stdin.write('menu player\n')
-        process.stdin.write(f'select {self.bluez_player_name}\n')
-
-        for command in commands:
-            self.logger.info('Sending command to player: \'%s\'', command)
-            process.stdin.write(command + '\n')
-
-        process.stdin.write('exit\n')
-        
-        out, err = process.communicate()
-
-        if err:
-            raise err
+        out = self.bluetoothctl_commands(new_command_list)
 
         return out
+
+    def command(self, command: str) -> str:
+        """
+        Selects the player currently set in class and executes the command. Returns the all the output as string.
+
+        Uses `self.commands()` function.
+        """
+
+        return self.commands([command])
 
     def toggle_play(self) -> bool:
         """
@@ -102,9 +98,9 @@ class Player():
         self.isPlaying = not self.isPlaying
 
         if self.isPlaying:
-            self.bluez_player_commands(['play'])
+            self.command('play')
         else:
-            self.bluez_player_commands(['pause'])
+            self.command('pause')
         
         # wait for player to update
         self.wait_and_update(self.wait_before_update_time)
@@ -117,7 +113,8 @@ class Player():
         Calls wait_and_update() afterwards.
         """
 
-        self.bluez_player_commands(['previous'])
+        self.command('previous')
+
 
         # wait for player to update
         self.wait_and_update(self.wait_before_update_time)
@@ -130,7 +127,7 @@ class Player():
         Calls wait_and_update() afterwards.
         """
 
-        self.bluez_player_commands(['next'])
+        self.command('next')
 
         # wait for player to update
         self.wait_and_update(self.wait_before_update_time)
@@ -148,7 +145,7 @@ class Player():
 
         percentage_string = str(percentage * 100) + '%'
 
-        subprocess.run([AMIXER_MODULE_NAME, 'sset', 'Master', percentage_string])
+        subprocess.run([amixer_module_path, 'sset', 'Master', percentage_string])
 
     def json_status(self):
         return json.dumps({
@@ -168,7 +165,7 @@ class Player():
 
         self.logger.info('Updating player.')
 
-        out = self.bluez_player_commands(['show'])
+        out = self.command('show')
 
         try:
             for line in out.split('\n'):
@@ -185,112 +182,25 @@ class Player():
                 else: pass
         except:
             self.logger.error('Error on updating player.', exc_info=1)
+
+    def exists(self) -> bool:
+        """
+        Returns True/False depending on if the player still exists.
+        """
+        return self.bluez_player_path in self.bluetoothctl_commands(['menu player', 'list']).split(' ')
     
     def clean_up(self):
         """
         Cleans up. Should be called before exiting program or deleting player instance
         """
-        pass
+        self.command('exit')
 
-
-def get_bluez_player_name() -> str:
-
-    player_names = list_bluez_player_names()
-
-    try:
-        return player_names[0]
-    except IndexError:
-        raise NoPlayerFoundException()
-
-def is_bluez_player_present(player_name: str) -> bool:
-
-    player_names = list_bluez_player_names()
-
-    return player_name in player_names
-
-def list_bluez_player_names() -> List[str]:
-    """
-    Returns a list of all the specific bluez player names.
-    """
-    
-    try:
-        # this could raise an exception if bluetoothctl is not preset on system
-        process = subprocess.Popen([BLUETOOTHCTL_MODULE_NAME], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-
-    # file not found error is raised by Popen, when there is no program at `BLUETOOTHCTL_MODULE_NAME`
-    # raise more specific error: BluetoothctlNotFound with the filename (name of program)
-    except FileNotFoundError as error:
-        raise BluetoothctlNotFoundException(error.filename)
-
-    process.stdin.write('menu player\n')
-    process.stdin.write('list\n')
-    process.stdin.write('exit\n')
-
-    out, err = process.communicate()
-
-    if err:
-        raise err
-
-    player_names = list()
-
-    for line in out.split('\n'):
-        if line.startswith('Player'):
-            player_names.append(line.split(' ')[1])
-
-    return player_names
-
-def bluetoothctl_commands(commands: List[str]) -> str:
-    """
-    Executes the list of commands against the `bluetootctl` program. Returns the all the output as string.
-    """
-
-    process = subprocess.Popen([BLUETOOTHCTL_MODULE_NAME], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-
-    for command in commands:
-        logging.getLogger().info('Sending command to bluetoothctl: \'%s\'', command)
-        process.stdin.write(command + '\n')
-
-    process.stdin.write('exit\n')
-    
-    out, err = process.communicate()
-
-    if err:
-        raise err
-
-    return out
-
-def set_pairing(status: bool) -> None:
-
-    command = 'pairing ' + 'on' if status else 'off'
-
-    bluetoothctl_commands([command])
-
-def set_discoverable(self, status: bool) -> None:
-
-    command = 'discoverable ' + 'on' if status else 'off'
-
-    bluetoothctl_commands([command])
-    
-
-class BluetoothctlNotFoundException(Exception):
-    """
-    Is raised when the bluetooth utility `bluetoothctl` was not found.
-    """
-
-    def __init__(self, bluetoothctl_name) -> None:
-        super().__init__(f'The bluetooth utility was not found: `{bluetoothctl_name}`')
-
-class NoPlayerFoundException(Exception):
-    """
-    Is raised when no player_name was given at initialization of player and there is no player present.
-    """
-
-    def __init__(self, message='No player was found and no player_name was given.') -> None:
-        super().__init__(message)
 
 class PlayerNotFoundException(Exception):
     """
-    Is raised when a player_name was given but the player is not listed by bluez.
+    Is raised when a player_name was given but the player is not listed by bluetoothctl.
+
+    This can also happen if the player you used, does not exist anymore because the device disconnected for example.
     """
 
     def __init__(self, player_name: str) -> None:

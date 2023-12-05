@@ -9,8 +9,7 @@ import yaml
 from flask_socketio import SocketIO
 from flask import Flask, render_template, request
 
-from player import Player, NoPlayerFoundException
-
+from bluetooth import Bluetooth
 
 class ConfigMissingException(Exception):
     """
@@ -48,32 +47,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
 socketio = SocketIO(app)
 
-# create player variable to use in player endpoint and search_and_set_player() function
-player: Player = None
-
-def search_and_set_player() -> bool:
-    """
-    This function tries to initiate a player and set it as the global player variable. It returns a boolean indicating if initialization was successful.
-    """
-
-    global player
-
-    try:
-        
-        logger.info('Searching for player')
-
-        player = Player(
-            wait_before_update_time=config.get('PLAYER_UPDATE_TIME', None),
-            logger=logger
-        )
-
-        logger.info('Found and set player: %s', player.bluez_player_name)
-
-        return True
-
-    except NoPlayerFoundException:
-        logger.warning('Tried initiating player, but no player was found')
-        return False
+# create bluetooth instance to use bluetoothctl features
+bluetooth = Bluetooth(logger=logger)
 
 # Event to signal the dashboard update thread to stop
 stop_dashboard_updates_event = Event()
@@ -92,7 +67,7 @@ def shutdown_server():
 
     # tell player to clean up
     logger.info('Cleaning up instances.')
-    player.clean_up()
+    bluetooth.clean_up()
 
     # schedule shutdown on machine
     logger.info('Scheduling a shutdown.')
@@ -148,64 +123,83 @@ def index():
 @app.route('/bluetooth/<string:action>', methods=['POST'])
 def bluetooth_endpoint(action):
     """
-    First, it checks if bluetooth instance was set globally and if not it tries to initiate it.
-
-    Calls corresponding method on player to action parameter. Returns an error message if there was an error.
-
     :param action: 'discoverable' | 'pairing'
     :return: dictionary { 'error': string }
     """
 
+    if action == 'discoverable':
+        status = request.form.get('status')
+        bluetooth.discoverable(status == 'true')
+
+        return '', 200
+
+    elif action == 'pairing':
+        status = request.form.get('status')
+        bluetooth.pairable(status == 'true')
+
+        return '', 200
+    else:
+        return '', 404
+
 @app.route('/player/<string:action>', methods=['POST'])
 def player_endpoint(action):
     """
-    First, it checks if player was set globally and if not it calls `search_and_set_player()` function.
-
-    Calls corresponding method on player to action parameter and returns new song information (from player) as json.
-
     :param action: 'play_pause' | 'forward' | 'back'
     :return: dictionary { 'title': str, 'interpret': str, 'length': int, 'isPlaying': bool }
     """
 
-    if not player:
-        success_setting_player = search_and_set_player()
+    if not bluetooth.player:
+        
+        try:
+            player_names = bluetooth.list_players()
 
-        if not success_setting_player:
+            # use the first player found
+            bluetooth.set_player(player_names[0])
+        except IndexError:
             return { 'error': 'A bluetooth connected device with music playing is required to use player actions.' }, 400
 
     # call player method corresponding to action
 
-    if action == 'play_pause':
-        player.toggle_play()
+    try:
+        if action == 'play_pause':
+            bluetooth.player.toggle_play()
 
-    # elif action == 'skip_to':
-    #     percentage = request.form.get('percentage')
-    #     response['current'] = p.skip_to(float(percentage))
+        # elif action == 'skip_to':
+        #     percentage = request.form.get('percentage')
+        #     response['current'] = p.skip_to(float(percentage))
 
-    elif action == 'volume_to':
-        percentage = request.form.get('percentage')
-        player.set_volume(float(percentage))
+        elif action == 'volume_to':
+            percentage = request.form.get('percentage')
+            bluetooth.player.set_volume(float(percentage))
 
-    elif action == 'forward':
-        player.next()
+        elif action == 'forward':
+            bluetooth.player.next()
 
-    elif action == 'back':
-        player.previous()
+        elif action == 'back':
+            bluetooth.player.previous()
 
-    else: return '', 404
-    
-    # every player method should update the player instance by itsself
-    # -> get the data from player instance and respond with it
-    response = {
-        'title': player.song['title'],
-        'interpret': player.song['interpret'],
-        'length': player.song['length'],
-        'isPlaying': player.isPlaying,
-        'volume': player.volume,
-        'error': None,
-    }
+        else: return '', 404
+ 
+        # every player method should update the player instance by itsself
+        # -> get the data from player instance and respond with it
+        response = {
+            'title': bluetooth.player.song['title'],
+            'interpret': bluetooth.player.song['interpret'],
+            'length': bluetooth.player.song['length'],
+            'isPlaying': bluetooth.player.isPlaying,
+            'volume': bluetooth.player.volume,
+            'error': None,
+        }
 
-    return response, 200
+        return response, 200
+
+    except PlayerNotFoundException:
+        logger.warning('The player \'%s\' does not exist anymore.', bluetooth.player.bluez_player_path)
+        logger.info('Setting player on bluetooth instance to None')
+        bluetooth.unset_player()
+
+        return { 'error': 'A bluetooth connected device with music playing is required to use player actions.' }, 400
+
 
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
