@@ -34,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const backButton = document.getElementById('forwardButton');
     const forwardButton = document.getElementById('backButton');
     const shutdownButton = document.getElementById('shutdownButton');
+    const newConnOnButton = document.getElementById('pairing-discoverable-on');
+    const newConnOffButton = document.getElementById('pairing-discoverable-off');
     // const playerSlider = document.getElementById('playerSlider');
     // const currentTimeLabel = document.getElementById('song-current');
     // const endTimeLabel = document.getElementById('song-end');
@@ -56,6 +58,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     shutdownButton.addEventListener('click', async () => {
         sendRequest('/shutdown');
+    });
+
+    newConnOnButton.addEventListener('click', async () => {
+        sendRequest('/bluetooth/discoverable', { status: true });
+        sendRequest('/bluetooth/pairable', { status: true });
+    });
+
+    newConnOffButton.addEventListener('click', async () => {
+        sendRequest('/bluetooth/discoverable', { status: false });
+        sendRequest('/bluetooth/pairable', { status: false });
     });
 
     // playerSlider.addEventListener('change', () => {
