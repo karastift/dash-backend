@@ -12,6 +12,7 @@ from flask import Flask, render_template, request
 from bluetooth import Bluetooth
 from player import PlayerNotFoundException
 
+
 class ConfigMissingException(Exception):
     """
     Is raised when a config option is not set.
