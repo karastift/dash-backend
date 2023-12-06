@@ -135,7 +135,7 @@ def bluetooth_endpoint(action):
 
         return '', 200
 
-    elif action == 'pairing':
+    elif action == 'pairable':
         status = request.form.get('status')
         bluetooth.pairable(status == 'true')
 
