@@ -47,7 +47,7 @@ logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
-socketio = SocketIO(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # create bluetooth instance to use bluetoothctl features
 bluetooth = Bluetooth(logger=logger)
