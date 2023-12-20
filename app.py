@@ -206,4 +206,4 @@ if __name__ == '__main__':
     # update_player_thread.daemon = True
     # update_player_thread.start()
 
-    socketio.run(app, '0.0.0.0', port=3333, debug=True)
+    socketio.run(app, '0.0.0.0', port=3333, debug=True, allow_unsafe_werkzeug=True)
