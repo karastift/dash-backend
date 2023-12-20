@@ -6,6 +6,7 @@ import subprocess
 from threading import Thread, Event
 
 import yaml
+from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask import Flask, request
 
@@ -46,6 +47,7 @@ logger.addHandler(log_handler)
 logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
+CORS(app)
 app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
 socketio = SocketIO(app, cors_allowed_origins="*")
 
