@@ -1,6 +1,8 @@
+import os
 import sys
 import time
 import json
+import uuid
 import logging
 import subprocess
 from threading import Thread, Event
@@ -14,27 +16,8 @@ from bluetooth import Bluetooth
 from player import PlayerNotFoundException
 
 
-class ConfigMissingException(Exception):
-    """
-    Is raised when a config option is not set.
-    """
-    def __init__(self, missing_config: str = '') -> None:
-        if missing_config:
-            super().__init__(f'`{missing_config}` is not set in configuration file.')
-        else:
-            super().__init__('Configuration file does not contain configuration.')
-
-
-# load configuration
-config = yaml.safe_load(open('./config.yml'))
-
-if not config: raise ConfigMissingException()
-
-# check loaded configuration
-expected_config_options = ['FLASK_SECRET_KEY', 'DASHBOARD_UPDATE_TIME', 'DEV']
-for config_option in expected_config_options:
-    if not config_option in config:
-        raise ConfigMissingException(config_option)
+flask_secret_key = os.environ.get('FLASK_SECRET_KEY', str(uuid.uuid4()))
+dashboard_update_time = os.environ.get('DASHBOARD_UPDATE_TIME', '0.2')
 
 # Configure logging with a custom format
 log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%d/%b/%Y %H:%M:%S')
@@ -48,7 +31,7 @@ logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 CORS(app)
-app.config['SECRET_KEY'] = config['FLASK_SECRET_KEY']
+app.config['SECRET_KEY'] = flask_secret_key
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # create bluetooth instance to use bluetoothctl features
@@ -102,7 +85,7 @@ def send_dashboard_data():
     kmh = 0
     rpm = 0
 
-    wait_time = config['DASHBOARD_UPDATE_TIME']
+    wait_time = float(dashboard_update_time)
 
     while not stop_dashboard_updates_event.is_set():
         kmh %= 200
