@@ -7,7 +7,7 @@ from threading import Thread, Event
 
 import yaml
 from flask_socketio import SocketIO
-from flask import Flask, render_template, request
+from flask import Flask, request
 
 from bluetooth import Bluetooth
 from player import PlayerNotFoundException
@@ -116,11 +116,6 @@ def send_dashboard_data():
 
         socketio.emit('dashboard_update', data_string)
         time.sleep(wait_time)
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/bluetooth/<string:action>', methods=['POST'])
 def bluetooth_endpoint(action):
