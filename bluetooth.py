@@ -113,13 +113,13 @@ class Bluetooth():
 
     def pairable(self, status: bool) -> None:
 
-        command = 'pairable ' + 'on' if status else 'off'
+        command = 'pairable ' + ('on' if status else 'off')
 
         self.command(command)
 
     def discoverable(self, status: bool) -> None:
 
-        command = 'discoverable ' + 'on' if status else 'off'
+        command = 'discoverable ' + ('on' if status else 'off')
 
         self.command(command)
 

@@ -74,7 +74,8 @@ class Player():
         """
 
         # selects player before executing commands
-        new_command_list = ['menu player', f'select {self.bluez_player_path}'].extend(commands)
+        new_command_list = ['menu player', f'select {self.bluez_player_path}']
+        new_command_list.extend(commands)
 
         out = self.bluetoothctl_commands(new_command_list)
 
