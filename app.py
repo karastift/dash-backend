@@ -15,7 +15,6 @@ from flask import Flask, request
 from bluetooth import Bluetooth
 from player import PlayerNotFoundException
 
-
 flask_secret_key = os.environ.get('FLASK_SECRET_KEY', str(uuid.uuid4()))
 dashboard_update_time = os.environ.get('DASHBOARD_UPDATE_TIME', '0.2')
 
@@ -40,6 +39,9 @@ bluetooth = Bluetooth(logger=logger)
 # Event to signal the dashboard update thread to stop
 stop_dashboard_updates_event = Event()
 
+# Event to signal the player update thread to stop
+stop_player_updates_event = Event()
+
 def shutdown_server():
     """
     Calls clean up function on instances creates (Player),
@@ -48,9 +50,10 @@ def shutdown_server():
     and exits program.
     """
 
-    # Set the event to signal the dashboard update thread to stop
+    # Set the event to signal the dashboard/player update thread to stop
     logger.info('Sending stop signal to threads.')
     stop_dashboard_updates_event.set()
+    stop_player_updates_event.set()
 
     # tell player to clean up
     logger.info('Cleaning up instances.')
@@ -68,11 +71,79 @@ def shutdown_server():
     logger.info('Exiting program.')
     sys.exit()
 
-# def update_and_send_player_data():
-#     while True:
-#         p.update()
-#         socketio.emit('player_update', p.json_status())
-#         time.sleep(5) # update every 5 seconds to save resources and i cant get the current playing anyways
+def update_and_send_player_data():
+    """
+    Creates an endless loop that sends updates to the dashboard per websocket.
+    The data sent, involves player specific data like the song currently playing.
+    """
+
+    sleep_time = 5
+
+    logger.info('Starting to send player updates.')
+
+    while not stop_player_updates_event.is_set():
+
+        logger.info('Trying to send player update')
+
+        if not bluetooth.player:
+            
+            try:
+                player_names = bluetooth.list_players()
+
+                # use the first player found
+                bluetooth.set_player(player_names[0])
+
+                logger.info('A new player \'%s\' was found and set', bluetooth.player.bluez_player_path)
+
+            except IndexError:
+
+                logger.info('No player was found, sending player update with no data')
+
+                socketio.emit('player_update', json.dumps({
+                'title': '',
+                'interpret': '',
+                'length': 0,
+                'isPlaying': False,
+                'volume': 0,
+                'error': 'A bluetooth connected device with music playing is required to use player actions.',
+            }))
+
+                time.sleep(sleep_time)
+                continue
+        
+        try:
+
+            bluetooth.player.update()
+
+            data_string = json.dumps({
+                'title': bluetooth.player.song['title'],
+                'interpret': bluetooth.player.song['interpret'],
+                'length': bluetooth.player.song['length'],
+                'isPlaying': bluetooth.player.isPlaying,
+                'volume': bluetooth.player.volume,
+                'error': None,
+            })
+
+            logger.info('Sending player update:\n%s', data_string)
+
+            socketio.emit('player_update', data_string)
+        except PlayerNotFoundException:
+            logger.warning('The player \'%s\' does not exist anymore.', bluetooth.player.bluez_player_path)
+            logger.info('Setting player on bluetooth instance to None')
+            bluetooth.unset_player()
+
+            logger.info('Sending empty player update')
+
+            socketio.emit('player_update', json.dumps({
+            'title': '',
+            'interpret': '',
+            'length': 0,
+            'isPlaying': False,
+            'volume': 0,
+            'error': 'A bluetooth connected device with music playing is required to use player actions.',
+        }))
+
+        time.sleep(sleep_time)
 
 def send_dashboard_data():
     """
@@ -202,8 +273,8 @@ if __name__ == '__main__':
     update_dashboard_thread.start()
 
     # start thread to send updated data for player
-    # update_player_thread = Thread(target=update_and_send_player_data)
-    # update_player_thread.daemon = True
-    # update_player_thread.start()
+    update_player_thread = Thread(target=update_and_send_player_data)
+    update_player_thread.daemon = True
+    update_player_thread.start()
 
     socketio.run(app, '0.0.0.0', port=3333, debug=True, allow_unsafe_werkzeug=True)
