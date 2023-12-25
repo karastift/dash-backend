@@ -3,6 +3,7 @@ import subprocess
 from typing import List
 
 from player import Player
+from device import Device
 
     
 class Bluetooth():
@@ -14,8 +15,6 @@ class Bluetooth():
     player: Player = None
 
     def __init__(self, bluetoothctl_path: str = 'bluetoothctl', logger: logging.Logger = None) -> None:
-        """
-        """
 
         # if logger is set, use it
         # if logger is not set a null_logger is created that wont log anything
@@ -122,6 +121,44 @@ class Bluetooth():
         command = 'discoverable ' + ('on' if status else 'off')
 
         self.command(command)
+    
+    def list_devices(self) -> List[Device]:
+        """
+        Returns a list of all devices known.
+        """
+
+        out = self.command('devices')
+
+        devices = list()
+
+        for line in out.split('\n'):
+            if line.startswith('Device'):
+                try:
+                    splitted = line.split(' ')
+                    devices.append(Device(
+                        name=splitted[2],
+                        mac=splitted[1],
+                    ))
+                except Exception as e:
+                    self.logger.error('Error while listing devices: %s', e)
+
+        return devices
+    
+    def remove_device(self, mac_address: str) -> None:
+
+        if not self.device_exists(mac_address): return
+
+        command = 'remove ' + mac_address
+
+        self.command(command)
+    
+    def device_exists(self, mac_address: str) -> bool:
+        devices = self.list_devices()
+
+        for device in devices:
+            if device.mac_address == mac_address: return True
+        
+        return False
 
     def clean_up(self):
         """

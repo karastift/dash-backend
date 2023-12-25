@@ -191,6 +191,19 @@ def bluetooth_endpoint(action):
         bluetooth.pairable(status == 'true')
 
         return '', 200
+
+    elif action == 'devices':
+        
+        devices = bluetooth.list_devices()
+
+        return devices, 200
+
+    elif action == 'remove_device':
+        mac_address = request.form.get('mac_address')
+
+        devices = bluetooth.remove_device(mac_address)
+
+        return '', 200
     else:
         return '', 404
 
