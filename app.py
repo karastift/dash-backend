@@ -196,7 +196,7 @@ def bluetooth_endpoint(action):
         
         devices = bluetooth.list_devices()
 
-        return devices, 200
+        return json.dumps([device.__dict__ for device in devices]), 200
 
     elif action == 'remove_device':
         mac_address = request.form.get('mac_address')
