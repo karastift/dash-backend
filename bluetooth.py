@@ -137,7 +137,7 @@ class Bluetooth():
                     splitted = line.split(' ')
                     devices.append(Device(
                         name=splitted[2],
-                        mac=splitted[1],
+                        mac_address=splitted[1],
                     ))
                 except Exception as e:
                     self.logger.error('Error while listing devices: %s', e)
