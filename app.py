@@ -97,7 +97,9 @@ def update_and_send_player_data():
 
             except IndexError:
 
-                logger.info('No player was found, sending player update with no data')
+                logger.info('No player was found, sending player update with no data except for devices')
+
+                devices = bluetooth.list_devices()
 
                 socketio.emit('player_update', json.dumps({
                 'title': '',
@@ -105,6 +107,7 @@ def update_and_send_player_data():
                 'length': 0,
                 'isPlaying': False,
                 'volume': 0,
+                'devices': [device.__dict__ for device in devices],
                 'error': 'A bluetooth connected device with music playing is required to use player actions.',
             }))
 
@@ -114,6 +117,7 @@ def update_and_send_player_data():
         try:
 
             bluetooth.player.update()
+            devices = bluetooth.list_devices()
 
             data_string = json.dumps({
                 'title': bluetooth.player.song['title'],
@@ -121,6 +125,7 @@ def update_and_send_player_data():
                 'length': bluetooth.player.song['length'],
                 'isPlaying': bluetooth.player.isPlaying,
                 'volume': bluetooth.player.volume,
+                'devices': [device.__dict__ for device in devices],
                 'error': None,
             })
 
