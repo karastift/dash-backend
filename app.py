@@ -7,7 +7,7 @@ import logging
 import subprocess
 from threading import Thread, Event
 
-import yaml
+import obd
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask import Flask, request
@@ -17,6 +17,7 @@ from player import PlayerNotFoundException
 
 flask_secret_key = os.environ.get('FLASK_SECRET_KEY', str(uuid.uuid4()))
 dashboard_update_time = os.environ.get('DASHBOARD_UPDATE_TIME', '0.2')
+obd_adapter_serial_name = os.environ.get('OBD_ADAPTER_SERIAL_NAME', 'serial')
 
 # Configure logging with a custom format
 log_formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%d/%b/%Y %H:%M:%S')
@@ -34,13 +35,62 @@ app.config['SECRET_KEY'] = flask_secret_key
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # create bluetooth instance to use bluetoothctl features
-bluetooth = Bluetooth(logger=logger)
+# bluetooth = Bluetooth(logger=logger)
+
+# create connection to obd adapter
+obd_conn: obd.Async = None
 
 # Event to signal the dashboard update thread to stop
-stop_dashboard_updates_event = Event()
+stop_obd_connection_loop = Event()
 
 # Event to signal the player update thread to stop
 stop_player_updates_event = Event()
+
+def speed_update(speed):
+
+    data = str(speed.value.magnitude) if not speed.is_null() else '0'
+
+    socketio.emit('speed', data)
+
+def rpm_update(rpm):
+
+    data = str(rpm.value.magnitude) if not rpm.is_null() else '0'
+
+    socketio.emit('rpm', data)
+
+def init_obd():
+    """
+    Initializes a new obd connection and sets up watchers to send data per websocket.    
+    """
+
+    global obd_conn
+
+    ports = obd.scan_serial()
+
+    adapter_port = ''
+
+    # my current adapter has 'serial' in the name so I use that to select it
+    for port in ports:
+        if obd_adapter_serial_name in port:
+            logger.info('An obd adapter was found: %s', port)
+            adapter_port = port
+    
+    if adapter_port == '':
+        logger.error('No obd adapter was found')
+
+    logger.info('Trying to initialize connection: \'%s\'', adapter_port)
+
+    obd_conn = obd.Async(adapter_port if adapter_port else None)
+
+    # dont start watchers, when no connection to car was made
+    if obd_conn.status() != obd.OBDStatus.CAR_CONNECTED:
+        logger.warning('Car is not connected on new connection: \'%s\'', adapter_port)
+        return
+
+    obd_conn.watch(obd.commands.RPM, callback=rpm_update)
+    obd_conn.watch(obd.commands.SPEED, callback=speed_update)
+
+    obd_conn.start()
 
 def shutdown_server():
     """
@@ -52,8 +102,12 @@ def shutdown_server():
 
     # Set the event to signal the dashboard/player update thread to stop
     logger.info('Sending stop signal to threads.')
-    stop_dashboard_updates_event.set()
+    stop_obd_connection_loop.set()
     stop_player_updates_event.set()
+
+    # stop obd update loop
+    obd_conn.stop()
+    obd_conn.unwatch_all()
 
     # tell player to clean up
     logger.info('Cleaning up instances.')
@@ -150,33 +204,43 @@ def update_and_send_player_data():
 
         time.sleep(sleep_time)
 
-def send_dashboard_data():
+def obd_connection_loop():
     """
-    Creates an endless loop that sends updates to the dashboard per websocket (every 100ms).
-    The data sent, involves vehicle specific data like kmh and rpm.
+    First it calls init_obd(). After that it creates an endless loop that tries to initiate a connection over obd to the car.
+    This also sends the current obd status as websocket update.
     """
 
-    logger.info('Starting to send vehicle updates.')
+    init_obd()
 
-    kmh = 0
-    rpm = 0
+    while not stop_obd_connection_loop.is_set():
+        time.sleep(5)
 
-    wait_time = float(dashboard_update_time)
+        if obd_conn.status() == obd.OBDStatus.CAR_CONNECTED:
+            socketio.emit('obd_status', json.dumps({ 'message': 'Car connected' }))
 
-    while not stop_dashboard_updates_event.is_set():
-        kmh %= 200
-        kmh += 5
+            logger.info('Connected to car')
+            continue
 
-        rpm %= 6000
-        rpm += 100
+        # close connection, because a new one will be established
+        obd_conn.close()
+        init_obd()
 
-        data_string = json.dumps({
-            'kmh': kmh,
-            'rpm': rpm,
-        })
+        if obd_conn.status() == obd.OBDStatus.NOT_CONNECTED:
 
-        socketio.emit('dashboard_update', data_string)
-        time.sleep(wait_time)
+            socketio.emit('obd_status', json.dumps({ 'message': 'Not connected to the obd adapter' }))
+
+            logger.error('No connection to obd adapter')
+
+
+        elif obd_conn.status() == obd.OBDStatus.ELM_CONNECTED:
+            socketio.emit('obd_status', json.dumps({ 'message': 'Connected to adapter, but no car was detected' }))
+
+            logger.error('Connected to adapter \'%s\', but no car was detected', obd_conn.port_name())
+
+        elif obd_conn.status() == obd.OBDStatus.OBD_CONNECTED:
+            socketio.emit('obd_status', json.dumps({ 'message': 'Connected to car, ignition off' }))
+
+            logger.info('Connected to car (through \'%s\'), ignition off', obd_conn.port_name())
 
 @app.route('/bluetooth/<string:action>', methods=['POST'])
 def bluetooth_endpoint(action):
@@ -285,8 +349,8 @@ def shutdown():
 
 
 if __name__ == '__main__':
-    # start thread to send updated data for dashboard (vehicle data)
-    update_dashboard_thread = Thread(target=send_dashboard_data)
+    # start thread to create obd connection
+    update_dashboard_thread = Thread(target=obd_connection_loop)
     update_dashboard_thread.daemon = True
     update_dashboard_thread.start()
 
