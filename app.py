@@ -35,7 +35,7 @@ app.config['SECRET_KEY'] = flask_secret_key
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # create bluetooth instance to use bluetoothctl features
-# bluetooth = Bluetooth(logger=logger)
+bluetooth = Bluetooth(logger=logger)
 
 # create connection to obd adapter
 obd_conn: obd.Async = None
